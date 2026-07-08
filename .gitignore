@@ -1,0 +1,10 @@
+.idea
+.claude
+.claude-flow
+CLAUDE.md
+.mcp.json
+.swarm
+.venv
+.env
+ruvector.db
+docs/implementation-plan.md
