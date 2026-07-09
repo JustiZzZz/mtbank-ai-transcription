@@ -37,7 +37,8 @@ class TextFormatter(logging.Formatter):
     """Простой текстовый формат, когда JSON мешает читать консоль."""
 
     def format(self, record: LogRecord) -> str:
-        return f"{self.formatTime(record)} {record.levelname:<8} [{record.name}] {record.getMessage()}"
+        timestamp = self.formatTime(record)
+        return f"{timestamp} {record.levelname:<8} [{record.name}] {record.getMessage()}"
 
 
 def configure_logging(settings: Settings) -> None:
