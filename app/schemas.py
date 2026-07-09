@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, model_validator
 Speaker = Literal["Оператор", "Клиент", "UNKNOWN"]
 Topic = Literal["кредиты", "карты", "переводы", "жалобы", "другое"]
 Priority = Literal["low", "medium", "high"]
+ConfidenceLabel = Literal["low", "medium", "high"]
 Severity = Literal["low", "medium", "high"]
 
 
@@ -32,6 +33,7 @@ class Classification(BaseModel):
     topic: Topic
     priority: Priority
     confidence: float = Field(ge=0, le=1)
+    confidence_label: ConfidenceLabel = "medium"
     rationale: str = Field(min_length=1)
 
 
