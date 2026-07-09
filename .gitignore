@@ -11,6 +11,7 @@ ruvector.db
 # Документы для поддержки контекста и плана агентом
 docs/implementation-plan.md
 docs/prompt-keyword-audit.md
+docs/audio-storage-plan.md
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
