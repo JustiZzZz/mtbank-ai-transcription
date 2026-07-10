@@ -1,0 +1,62 @@
+{
+  "file": "call06_unknown_nonsense.flac",
+  "title": "Бессмысленный разговор: должен остаться UNKNOWN/другое",
+  "duration_seconds": 45.76,
+  "format": "flac",
+  "sample_rate_hz": 8000,
+  "phone_like": true,
+  "expected_topic": "другое",
+  "expected_priority": "low",
+  "expected_compliance_passed": true,
+  "notes": "Нет банковской темы и нет операторского opener; fallback diarizer должен оставить UNKNOWN.",
+  "transcript": [
+    {
+      "speaker": "UNKNOWN",
+      "start": 0.0,
+      "end": 6.29,
+      "text": "Алло. У меня на столе зеленая лампа и три пустые коробки."
+    },
+    {
+      "speaker": "UNKNOWN",
+      "start": 6.94,
+      "end": 12.91,
+      "text": "А у меня чайник спорит с календарем, потому что сегодня вторник или облако."
+    },
+    {
+      "speaker": "UNKNOWN",
+      "start": 13.56,
+      "end": 17.91,
+      "text": "Вы слышите, как карандаш считает ступеньки?"
+    },
+    {
+      "speaker": "UNKNOWN",
+      "start": 18.56,
+      "end": 23.33,
+      "text": "Слышу, но только если окно смотрит на северный суп."
+    },
+    {
+      "speaker": "UNKNOWN",
+      "start": 23.98,
+      "end": 28.06,
+      "text": "Тогда положите круглый билет рядом с тишиной."
+    },
+    {
+      "speaker": "UNKNOWN",
+      "start": 28.71,
+      "end": 34.16,
+      "text": "Я положил, но он стал прозрачным и начал шептать про апельсины."
+    },
+    {
+      "speaker": "UNKNOWN",
+      "start": 34.81,
+      "end": 40.33,
+      "text": "Хорошо. На этом странный разговор можно закончить."
+    },
+    {
+      "speaker": "UNKNOWN",
+      "start": 40.98,
+      "end": 45.11,
+      "text": "Да, до свидания, квадратная погода."
+    }
+  ]
+}

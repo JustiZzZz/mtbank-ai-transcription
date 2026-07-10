@@ -1,7 +1,7 @@
 .idea
 
 # Тестовые файлы и скрипты для генерации
-test_data
+test_data_audio
 scripts
 
 # Huggingface модели

@@ -1,0 +1,15 @@
+{
+  "file": "benchmark_5min_call.mp4",
+  "duration_seconds": 300.0,
+  "purpose": "5-minute /analyze latency benchmark",
+  "expected_limit_seconds": 60,
+  "source_files": [
+    "call01_credit_online.wav",
+    "call02_halva_fraud.mp3",
+    "call03_transfer_stuck.ogg",
+    "call04_compliance_risky.wav",
+    "call05_poor_quality_complaint.mp3",
+    "call06_unknown_nonsense.flac"
+  ],
+  "notes": "Black video with phone-bandlimited Russian call-center audio."
+}
