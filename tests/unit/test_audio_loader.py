@@ -11,13 +11,13 @@ from app.config import Settings
 def make_settings(tmp_path: Path) -> Settings:
     return Settings(
         max_audio_mb=1,
-        allowed_audio_extensions=[".wav", ".mp3", ".ogg"],
+        allowed_audio_extensions=[".wav", ".mp3", ".ogg", ".mp4"],
         audio_storage_dir=str(tmp_path / "stored"),
     )
 
 
-@pytest.mark.parametrize("suffix", [".wav", ".mp3", ".ogg", ".WAV"])
-def test_loader_accepts_required_audio_formats(tmp_path: Path, suffix: str) -> None:
+@pytest.mark.parametrize("suffix", [".wav", ".mp3", ".ogg", ".mp4", ".WAV"])
+def test_loader_accepts_supported_media_formats(tmp_path: Path, suffix: str) -> None:
     source = tmp_path / f"call{suffix}"
     source.write_bytes(b"audio")
     loader = AudioLoader(make_settings(tmp_path))

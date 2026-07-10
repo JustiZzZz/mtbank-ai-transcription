@@ -33,9 +33,17 @@ class Settings(BaseSettings):
     whisper_model: str = "medium"
     whisper_device: str = "cuda"
     whisper_compute_type: str = "int8_float16"
+    whisper_cpu_threads: int = 0
+    whisper_num_workers: int = 1
     whisper_beam_size: int = 1
+    whisper_batch_size: int = 8
     whisper_language: str = "ru"
     whisper_vad_filter: bool = True
+    whisper_word_timestamps: bool = False
+    whisper_condition_on_previous_text: bool = False
+    whisper_download_root: str | None = None
+    whisper_local_files_only: bool = False
+    preload_asr_model: bool = False
 
     max_audio_mb: int = 100
     max_audio_seconds: int = 600
@@ -45,6 +53,7 @@ class Settings(BaseSettings):
         ".ogg",
         ".m4a",
         ".flac",
+        ".mp4",
     ]
     audio_storage_backend: str = "local"
     audio_storage_dir: str = "var/audio"

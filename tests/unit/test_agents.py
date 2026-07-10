@@ -171,6 +171,53 @@ async def test_summarizer_deduplicates_action_items() -> None:
     ]
 
 
+async def test_summarizer_builds_structured_summary_from_long_dialog() -> None:
+    result = await FallbackSummarizerAgent().analyze(
+        [
+            TranscriptSegment(
+                speaker="Оператор",
+                start=0,
+                end=2,
+                text="Добрый день, МТБанк, меня зовут Анна",
+            ),
+            TranscriptSegment(
+                speaker="Клиент",
+                start=3,
+                end=5,
+                text="У меня карта Халва, пришло списание, которое я не совершал",
+            ),
+            TranscriptSegment(
+                speaker="Оператор",
+                start=6,
+                end=8,
+                text="Сейчас важно заблокировать карту и оформить обращение по спорной операции",
+            ),
+            TranscriptSegment(
+                speaker="Клиент",
+                start=9,
+                end=11,
+                text="Хочу оставить жалобу, потому что поддержка долго отвечала",
+            ),
+            TranscriptSegment(
+                speaker="Оператор",
+                start=12,
+                end=14,
+                text=(
+                    "Я передам запрос на срочный перевыпуск "
+                    "и отправлю инструкцию по цифровой карте"
+                ),
+            ),
+        ]
+    )
+
+    assert result.summary == (
+        "Клиент сообщил: У меня карта Халва, пришло списание, которое я не совершал. "
+        "Оператор предложил: Сейчас важно заблокировать карту и оформить обращение по "
+        "спорной операции. Следующий шаг: Я передам запрос на срочный перевыпуск и "
+        "отправлю инструкцию по цифровой карте."
+    )
+
+
 async def test_supervisor_returns_agent_analysis_contract() -> None:
     result = await FallbackSupervisor().analyze(
         make_transcript(

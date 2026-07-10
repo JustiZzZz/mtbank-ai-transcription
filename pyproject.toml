@@ -5,6 +5,7 @@ description = "OpenWebUI Pipelines and FastAPI prototype for MTBank AI transcrip
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.116.0",
+    "faster-whisper>=1.1.0",
     "pydantic>=2.11.0",
     "pydantic-settings>=2.10.0",
     "python-multipart>=0.0.20",

@@ -1,24 +1,37 @@
 """Создание FastAPI-приложения."""
 
 import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette import status
 
+from app.api.v1.analyze import router as analyze_router
 from app.api.v1.router import api_router
 from app.config import get_settings
 from app.logging import configure_logging
+from app.runtime import get_analysis_runtime
 
 settings = get_settings()
 configure_logging(settings)
 logger = logging.getLogger(__name__)
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Инициализация тяжелых компонентов приложения."""
+    if settings.preload_asr_model:
+        logger.info("Preloading ASR model on startup")
+        await get_analysis_runtime().preload()
+    yield
+
+
 def create_app() -> FastAPI:
     """Собирает приложение: middleware, healthcheck и роуты."""
-    app = FastAPI(title=settings.app_name, debug=settings.debug)
+    app = FastAPI(title=settings.app_name, debug=settings.debug, lifespan=lifespan)
 
     app.add_middleware(
         CORSMiddleware,
@@ -41,6 +54,7 @@ def create_app() -> FastAPI:
         return {"status": "ok"}
 
     app.include_router(api_router, prefix=settings.api_v1_prefix)
+    app.include_router(analyze_router, tags=["analyze"])
     return app
 
 

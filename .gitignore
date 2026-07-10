@@ -1,5 +1,15 @@
 .idea
 
+# Тестовые файлы и скрипты для генерации
+test_data
+scripts
+
+# Huggingface модели
+CACHEDIR.TAG
+var
+models--Systran--faster-whisper-medium
+.locks
+
 # Ruflo и агент
 .claude
 .claude-flow
@@ -235,3 +245,4 @@ __marimo__/
 carad_test.db
 .idea/
 graphify-out/
+test_data/_build/
