@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 ResultModel = TypeVar("ResultModel", bound=BaseModel)
 FallbackCallable = Callable[[Sequence[TranscriptSegment]], Awaitable[ResultModel]]
+AgentMode = str
 
 
 class LLMValidatedAgent:
@@ -54,20 +55,41 @@ class LLMValidatedAgent:
         self.fallback = fallback
 
     async def analyze(self, transcript: Sequence[TranscriptSegment]) -> ResultModel:
-        try:
-            payload = await self.client.complete_json(
-                system_prompt=BASE_SYSTEM_PROMPT,
-                user_prompt=self._build_user_prompt(transcript),
-            )
-            return self.response_model.model_validate(payload)
-        except (LLMClientError, ValidationError, ValueError, TypeError) as exc:
-            logger.warning(
-                "LLM agent %s failed with %s: %s; using fallback",
-                self.agent_name,
-                exc.__class__.__name__,
-                exc,
-            )
-            return await self.fallback(transcript)
+        result, _mode = await self.analyze_with_mode(transcript)
+        return result
+
+    async def analyze_with_mode(
+        self,
+        transcript: Sequence[TranscriptSegment],
+    ) -> tuple[ResultModel, AgentMode]:
+        user_prompt = self._build_user_prompt(transcript)
+        last_error: Exception | None = None
+        attempts = max(1, self.client.settings.llm_validation_retries + 1)
+        for attempt in range(attempts):
+            try:
+                payload = await self.client.complete_json(
+                    system_prompt=BASE_SYSTEM_PROMPT,
+                    user_prompt=user_prompt,
+                )
+                result = self.response_model.model_validate(payload)
+                return result, "llm"
+            except ValidationError as exc:
+                last_error = exc
+                if attempt + 1 >= attempts:
+                    break
+                user_prompt = self._build_repair_prompt(transcript, payload, exc)
+            except (LLMClientError, ValueError, TypeError) as exc:
+                last_error = exc
+                break
+
+        reason = last_error or "unknown error"
+        logger.warning(
+            "LLM agent %s failed with %s: %s; using fallback",
+            self.agent_name,
+            reason.__class__.__name__,
+            reason,
+        )
+        return await self.fallback(transcript), "fallback"
 
     def _build_user_prompt(self, transcript: Sequence[TranscriptSegment]) -> str:
         schema = json.dumps(self.response_model.model_json_schema(), ensure_ascii=False)
@@ -81,6 +103,19 @@ class LLMValidatedAgent:
             f"Транскрипт:\n{transcript_json}"
         )
 
+    def _build_repair_prompt(
+        self,
+        transcript: Sequence[TranscriptSegment],
+        invalid_payload: dict[str, object],
+        error: ValidationError,
+    ) -> str:
+        return (
+            f"{self._build_user_prompt(transcript)}\n\n"
+            "Предыдущий JSON не прошел Pydantic validation. Исправь только JSON, "
+            "не добавляй markdown или пояснения.\n"
+            f"Ошибки validation:\n{error.errors()}\n"
+            f"Предыдущий JSON:\n{json.dumps(invalid_payload, ensure_ascii=False)}"
+        )
 
 class LLMClassifierAgent(LLMValidatedAgent):
     def __init__(self, client: OpenAICompatibleClient) -> None:

@@ -55,11 +55,16 @@ class LLMSupervisor:
         self.summarizer = LLMSummarizerAgent(client)
 
     async def analyze(self, transcript: Sequence[TranscriptSegment]) -> AgentAnalysis:
-        classification, quality_score, compliance, summary = await asyncio.gather(
-            self.classifier.analyze(transcript),
-            self.quality.analyze(transcript),
-            self.compliance.analyze(transcript),
-            self.summarizer.analyze(transcript),
+        (
+            (classification, classifier_mode),
+            (quality_score, quality_mode),
+            (compliance, compliance_mode),
+            (summary, summarizer_mode),
+        ) = await asyncio.gather(
+            self.classifier.analyze_with_mode(transcript),
+            self.quality.analyze_with_mode(transcript),
+            self.compliance.analyze_with_mode(transcript),
+            self.summarizer.analyze_with_mode(transcript),
         )
         return AgentAnalysis(
             classification=classification,
@@ -69,6 +74,10 @@ class LLMSupervisor:
             metadata={
                 "agents_mode": "llm",
                 "llm_model": self.client.settings.openai_model,
+                "llm_classifier_mode": classifier_mode,
+                "llm_quality_mode": quality_mode,
+                "llm_compliance_mode": compliance_mode,
+                "llm_summarizer_mode": summarizer_mode,
             },
         )
 

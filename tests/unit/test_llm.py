@@ -27,6 +27,8 @@ def make_client(handler) -> OpenAICompatibleClient:
             llm_timeout_seconds=5,
             llm_max_output_tokens=400,
             llm_enable_thinking=False,
+            llm_json_mode=True,
+            llm_validation_retries=1,
         ),
         transport=transport,
     )
@@ -69,6 +71,7 @@ async def test_openai_compatible_client_posts_chat_completion() -> None:
     assert requests[0]["body"]["model"] == "qwen3.7-plus"
     assert requests[0]["body"]["temperature"] == 0
     assert requests[0]["body"]["enable_thinking"] is False
+    assert requests[0]["body"]["response_format"] == {"type": "json_object"}
 
 
 async def test_openai_compatible_client_reports_sanitized_http_errors() -> None:
@@ -140,6 +143,45 @@ async def test_llm_classifier_falls_back_on_invalid_json() -> None:
     assert "Fallback" in result.rationale
 
 
+async def test_llm_classifier_repairs_validation_error_once() -> None:
+    responses = [
+        {
+            "topic": "complaint",
+            "priority": "urgent",
+            "confidence": 1.2,
+            "rationale": "Wrong enum values.",
+        },
+        {
+            "topic": "жалобы",
+            "priority": "high",
+            "confidence": 0.9,
+            "confidence_label": "high",
+            "rationale": "Исправлены enum и confidence.",
+        },
+    ]
+    requests: list[dict[str, object]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(json.loads(request.content))
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {"message": {"content": json.dumps(responses.pop(0), ensure_ascii=False)}}
+                ]
+            },
+        )
+
+    agent = LLMClassifierAgent(make_client(handler))
+
+    result, mode = await agent.analyze_with_mode(make_transcript("Хочу оставить жалобу"))
+
+    assert result.topic == "жалобы"
+    assert mode == "llm"
+    assert len(requests) == 2
+    assert "Pydantic validation" in requests[1]["messages"][1]["content"]
+
+
 def test_build_supervisor_uses_fallback_without_key() -> None:
     settings = Settings(
         _env_file=None,
@@ -164,3 +206,53 @@ def test_build_supervisor_uses_llm_when_configured() -> None:
 
     assert isinstance(supervisor, LLMSupervisor)
     assert supervisor.client.settings.openai_model == "qwen3.7-plus"
+
+
+async def test_llm_supervisor_reports_per_agent_modes() -> None:
+    response_by_call = [
+        {
+            "topic": "жалобы",
+            "priority": "high",
+            "confidence": 0.9,
+            "confidence_label": "high",
+            "rationale": "Жалоба клиента.",
+        },
+        {
+            "total": 55,
+            "checklist": {
+                "greeting": False,
+                "identification_or_intro": False,
+                "need_detection": True,
+                "solution_provided": True,
+                "objection_handling": True,
+                "farewell": False,
+            },
+            "comments": ["Нет приветствия."],
+        },
+        {"passed": True, "issues": []},
+        {"summary": "Клиент сообщил о спорной операции.", "action_items": []},
+    ]
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(response_by_call.pop(0), ensure_ascii=False)
+                        }
+                    }
+                ]
+            },
+        )
+
+    supervisor = LLMSupervisor(make_client(handler))
+
+    result = await supervisor.analyze(make_transcript("Хочу оставить жалобу"))
+
+    assert result.metadata["agents_mode"] == "llm"
+    assert result.metadata["llm_classifier_mode"] == "llm"
+    assert result.metadata["llm_quality_mode"] == "llm"
+    assert result.metadata["llm_compliance_mode"] == "llm"
+    assert result.metadata["llm_summarizer_mode"] == "llm"

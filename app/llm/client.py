@@ -47,6 +47,8 @@ class OpenAICompatibleClient:
             "max_tokens": self.settings.llm_max_output_tokens,
             "enable_thinking": self.settings.llm_enable_thinking,
         }
+        if self.settings.llm_json_mode:
+            payload["response_format"] = {"type": "json_object"}
         headers = {"Authorization": f"Bearer {self.settings.openai_api_key}"}
         url = f"{self.settings.openai_base_url.rstrip('/')}/chat/completions"
 

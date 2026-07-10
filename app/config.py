@@ -71,6 +71,8 @@ class Settings(BaseSettings):
     llm_timeout_seconds: float = 60
     llm_max_output_tokens: int = 1200
     llm_enable_thinking: bool = False
+    llm_json_mode: bool = True
+    llm_validation_retries: int = 1
 
     @field_validator("cors_origins", mode="before")
     @classmethod
