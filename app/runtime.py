@@ -17,7 +17,7 @@ from app.asr.transcriber import FasterWhisperTranscriber
 from app.audio.loader import AudioLoader, AudioValidationError
 from app.audio.normalize import AudioNormalizer
 from app.config import Settings, get_settings
-from app.orchestration.supervisor import FallbackSupervisor
+from app.orchestration.supervisor import build_supervisor
 from app.schemas import AnalysisResult
 from app.service import AnalysisService
 
@@ -35,7 +35,7 @@ def create_analysis_service(settings: Settings | None = None) -> AnalysisService
     return AnalysisService(
         transcriber=FasterWhisperTranscriber(resolved_settings),
         diarizer=FallbackDiarizer(),
-        supervisor=FallbackSupervisor(),
+        supervisor=build_supervisor(resolved_settings),
     )
 
 

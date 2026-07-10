@@ -1,4 +1,4 @@
-"""Промпты для будущей LLM-версии агентов.
+"""Промпты для LLM-версии агентов.
 
 Fallback-агенты используют keyword matching, а эти шаблоны фиксируют целевое
 поведение LLM-агентов со structured outputs и Pydantic validation.

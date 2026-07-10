@@ -61,6 +61,8 @@ def default_batch_pipeline_factory(model: WhisperModelLike) -> WhisperModelLike:
 class FasterWhisperTranscriber:
     """Транскрибирует аудио через faster-whisper и возвращает Pydantic-сегменты."""
 
+    _cpu_semaphore = asyncio.Semaphore(1)
+
     def __init__(
         self,
         settings: Settings | None = None,
@@ -123,6 +125,9 @@ class FasterWhisperTranscriber:
         await asyncio.to_thread(lambda: self.pipeline)
 
     async def transcribe(self, audio_path: str | Path) -> list[TranscriptSegment]:
+        if self.settings.whisper_device.lower() == "cpu":
+            async with self._cpu_semaphore:
+                return await asyncio.to_thread(self._transcribe_sync, Path(audio_path))
         return await asyncio.to_thread(self._transcribe_sync, Path(audio_path))
 
     def _transcribe_sync(self, audio_path: Path) -> list[TranscriptSegment]:

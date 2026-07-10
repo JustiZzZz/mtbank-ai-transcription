@@ -10,8 +10,10 @@ from app.config import Settings
 
 def make_settings(tmp_path: Path) -> Settings:
     return Settings(
+        _env_file=None,
         max_audio_mb=1,
         allowed_audio_extensions=[".wav", ".mp3", ".ogg", ".mp4"],
+        audio_storage_backend="local",
         audio_storage_dir=str(tmp_path / "stored"),
     )
 
@@ -61,7 +63,7 @@ def test_storage_uses_safe_unique_filename(tmp_path: Path) -> None:
 
 
 def test_loader_requires_custom_storage_for_s3_backend(tmp_path: Path) -> None:
-    settings = Settings(audio_storage_backend="s3", audio_storage_dir=str(tmp_path))
+    settings = Settings(_env_file=None, audio_storage_backend="s3", audio_storage_dir=str(tmp_path))
 
     with pytest.raises(NotImplementedError):
         AudioLoader(settings)

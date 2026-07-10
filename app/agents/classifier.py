@@ -118,7 +118,7 @@ def confidence_label(confidence: float) -> str:
 
 
 class FallbackClassifierAgent:
-    """Детерминированный классификатор до подключения LLM."""
+    """Детерминированный классификатор для fallback-режима."""
 
     async def analyze(self, transcript: Sequence[TranscriptSegment]) -> Classification:
         text = transcript_text(transcript)

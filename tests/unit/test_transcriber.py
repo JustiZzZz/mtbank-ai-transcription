@@ -1,5 +1,8 @@
 """Unit-тесты faster-whisper wrapper без загрузки реальной модели."""
 
+import asyncio
+import threading
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -43,6 +46,7 @@ async def test_transcriber_maps_whisper_segments() -> None:
 
     transcriber = FasterWhisperTranscriber(
         Settings(
+            _env_file=None,
             whisper_model="medium",
             whisper_device="cpu",
             whisper_compute_type="int8",
@@ -87,6 +91,7 @@ async def test_transcriber_uses_batched_pipeline_when_enabled() -> None:
 
     transcriber = FasterWhisperTranscriber(
         Settings(
+            _env_file=None,
             whisper_device="cpu",
             whisper_compute_type="int8",
             whisper_batch_size=8,
@@ -122,7 +127,12 @@ async def test_transcriber_preload_loads_model_once() -> None:
         return FakeWhisperModel()
 
     transcriber = FasterWhisperTranscriber(
-        Settings(whisper_device="cpu", whisper_compute_type="int8", whisper_batch_size=1),
+        Settings(
+            _env_file=None,
+            whisper_device="cpu",
+            whisper_compute_type="int8",
+            whisper_batch_size=1,
+        ),
         model_factory=model_factory,
     )
 
@@ -137,7 +147,7 @@ async def test_transcriber_wraps_cuda_runtime_errors() -> None:
         raise RuntimeError("Library cublas64_12.dll is not found or cannot be loaded")
 
     transcriber = FasterWhisperTranscriber(
-        Settings(whisper_device="cuda", whisper_compute_type="int8_float16"),
+        Settings(_env_file=None, whisper_device="cuda", whisper_compute_type="int8_float16"),
         model_factory=model_factory,
     )
 
@@ -154,6 +164,7 @@ async def test_transcriber_does_not_pass_empty_hf_token() -> None:
 
     transcriber = FasterWhisperTranscriber(
         Settings(
+            _env_file=None,
             whisper_device="cpu",
             whisper_compute_type="int8",
             hf_token="",
@@ -165,3 +176,42 @@ async def test_transcriber_does_not_pass_empty_hf_token() -> None:
     await transcriber.preload()
 
     assert received_kwargs["use_auth_token"] is None
+
+
+async def test_transcriber_limits_cpu_transcribes_to_one_at_a_time() -> None:
+    class SlowWhisperModel(FakeWhisperModel):
+        def __init__(self) -> None:
+            super().__init__()
+            self.active = 0
+            self.max_active = 0
+            self.lock = threading.Lock()
+
+        def transcribe(self, audio_path: str, **kwargs: object) -> tuple[list[object], object]:
+            with self.lock:
+                self.active += 1
+                self.max_active = max(self.max_active, self.active)
+            try:
+                time.sleep(0.05)
+                return super().transcribe(audio_path, **kwargs)
+            finally:
+                with self.lock:
+                    self.active -= 1
+
+    fake_model = SlowWhisperModel()
+    transcriber = FasterWhisperTranscriber(
+        Settings(
+            _env_file=None,
+            whisper_device="cpu",
+            whisper_compute_type="int8",
+            whisper_batch_size=1,
+        ),
+        model_factory=lambda **_: fake_model,
+    )
+
+    await asyncio.gather(
+        transcriber.transcribe(Path("first.wav")),
+        transcriber.transcribe(Path("second.wav")),
+    )
+
+    assert fake_model.max_active == 1
+    assert [call["audio_path"] for call in fake_model.calls] == ["first.wav", "second.wav"]

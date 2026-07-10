@@ -11,8 +11,6 @@ from uuid import uuid4
 
 from app.config import Settings, get_settings
 
-REQUIRED_AUDIO_EXTENSIONS = frozenset({".wav", ".mp3", ".ogg"})
-DEFAULT_AUDIO_EXTENSIONS = REQUIRED_AUDIO_EXTENSIONS | frozenset({".m4a", ".flac", ".mp4"})
 SAFE_STEM_RE = re.compile(r"[^a-zA-Z0-9_.-]+")
 
 

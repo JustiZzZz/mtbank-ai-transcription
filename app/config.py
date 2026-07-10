@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Один небольшой объект настроек для API и будущего Pipeline."""
+    """Один небольшой объект настроек для API и OpenWebUI Pipeline."""
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -66,6 +66,11 @@ class Settings(BaseSettings):
     openai_base_url: str = "https://api.openai.com/v1"
     openai_api_key: str | None = None
     openai_model: str | None = None
+    llm_enabled: bool = False
+    llm_temperature: float = 0
+    llm_timeout_seconds: float = 60
+    llm_max_output_tokens: int = 1200
+    llm_enable_thinking: bool = False
 
     @field_validator("cors_origins", mode="before")
     @classmethod
