@@ -1,0 +1,94 @@
+services:
+  api:
+    build:
+      context: .
+      target: api
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      AUDIO_STORAGE_DIR: /app/var/audio
+      WHISPER_DEVICE: ${WHISPER_DEVICE:-cpu}
+      WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-int8}
+      WHISPER_BATCH_SIZE: ${WHISPER_BATCH_SIZE:-16}
+      PRELOAD_ASR_MODEL: ${API_PRELOAD_ASR_MODEL:-false}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - ./test_data:/app/test_data:ro
+      - audio-storage:/app/var/audio
+      - whisper-cache:/root/.cache/huggingface
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  pipelines:
+    build:
+      context: .
+      target: pipelines
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      PIPELINES_API_KEY: ${PIPELINES_API_KEY:-0p3n-w3bu!}
+      PIPELINES_DIR: /app/pipelines
+      AUDIO_STORAGE_DIR: /app/var/audio
+      WHISPER_DEVICE: ${WHISPER_DEVICE:-cpu}
+      WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-int8}
+      WHISPER_BATCH_SIZE: ${WHISPER_BATCH_SIZE:-16}
+      PRELOAD_ASR_MODEL: ${PIPELINES_PRELOAD_ASR_MODEL:-false}
+    ports:
+      - "${PIPELINES_PORT:-9099}:9099"
+    volumes:
+      - ./test_data:/app/test_data:ro
+      - open-webui:/app/backend/data:ro
+      - audio-storage:/app/var/audio
+      - whisper-cache:/root/.cache/huggingface
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS -H 'Authorization: Bearer ${PIPELINES_API_KEY:-0p3n-w3bu!}' http://127.0.0.1:9099/v1/models >/dev/null",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    restart: unless-stopped
+    depends_on:
+      pipelines:
+        condition: service_healthy
+    environment:
+      WEBUI_AUTH: ${WEBUI_AUTH:-False}
+      ENABLE_PERSISTENT_CONFIG: ${ENABLE_PERSISTENT_CONFIG:-False}
+      OPENAI_API_BASE_URLS: http://pipelines:9099
+      OPENAI_API_KEYS: ${PIPELINES_API_KEY:-0p3n-w3bu!}
+      BYPASS_PYDUB_PREPROCESSING: ${OPENWEBUI_BYPASS_PYDUB_PREPROCESSING:-true}
+      WHISPER_MODEL: ${OPENWEBUI_WHISPER_MODEL:-base}
+      WHISPER_COMPUTE_TYPE: ${OPENWEBUI_WHISPER_COMPUTE_TYPE:-int8}
+      WHISPER_LANGUAGE: ${OPENWEBUI_WHISPER_LANGUAGE:-ru}
+      WHISPER_VAD_FILTER: ${OPENWEBUI_WHISPER_VAD_FILTER:-true}
+      AUDIO_STT_ALLOWED_EXTENSIONS: ${OPENWEBUI_AUDIO_STT_ALLOWED_EXTENSIONS:-mp3,wav,m4a,webm,ogg,flac,mp4,mpga,mpeg}
+    ports:
+      - "${OPENWEBUI_PORT:-3000}:8080"
+    volumes:
+      - open-webui:/app/backend/data
+
+volumes:
+  audio-storage:
+  open-webui:
+  whisper-cache:

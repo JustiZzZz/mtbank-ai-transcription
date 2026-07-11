@@ -10,6 +10,16 @@ from typing import Any
 
 from app.config import Settings
 
+RESERVED_LOG_RECORD_ATTRS = set(logging.makeLogRecord({}).__dict__) | {
+    "asctime",
+    "message",
+}
+
+
+def json_default(value: Any) -> str:
+    """Fallback serializer for structured log extras."""
+    return str(value)
+
 
 class JsonFormatter(logging.Formatter):
     """Одна строка лога = один JSON-объект."""
@@ -30,7 +40,10 @@ class JsonFormatter(logging.Formatter):
                 "message": str(record.exc_info[1]),
                 "traceback": traceback.format_exception(*record.exc_info),
             }
-        return json.dumps(payload, ensure_ascii=False)
+        for key, value in record.__dict__.items():
+            if key not in RESERVED_LOG_RECORD_ATTRS and not key.startswith("_"):
+                payload[key] = value
+        return json.dumps(payload, ensure_ascii=False, default=json_default)
 
 
 class TextFormatter(logging.Formatter):

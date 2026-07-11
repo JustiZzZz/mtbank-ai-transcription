@@ -1,6 +1,7 @@
 """Supervisor для запуска fallback-агентов."""
 
 import asyncio
+import logging
 from collections.abc import Sequence
 
 from app.agents.classifier import FallbackClassifierAgent
@@ -13,10 +14,13 @@ from app.agents.llm import (
 )
 from app.agents.quality import FallbackQualityAgent
 from app.agents.summarizer import FallbackSummarizerAgent
+from app.agents.telemetry import run_logged_agent
 from app.config import Settings
 from app.llm.client import OpenAICompatibleClient
 from app.schemas import TranscriptSegment
 from app.service import AgentAnalysis
+
+logger = logging.getLogger(__name__)
 
 
 class FallbackSupervisor:
@@ -30,10 +34,30 @@ class FallbackSupervisor:
 
     async def analyze(self, transcript: Sequence[TranscriptSegment]) -> AgentAnalysis:
         classification, quality_score, compliance, summary = await asyncio.gather(
-            self.classifier.analyze(transcript),
-            self.quality.analyze(transcript),
-            self.compliance.analyze(transcript),
-            self.summarizer.analyze(transcript),
+            run_logged_agent(
+                logger=logger,
+                agent_name="classifier",
+                transcript=transcript,
+                call=lambda: self.classifier.analyze(transcript),
+            ),
+            run_logged_agent(
+                logger=logger,
+                agent_name="quality",
+                transcript=transcript,
+                call=lambda: self.quality.analyze(transcript),
+            ),
+            run_logged_agent(
+                logger=logger,
+                agent_name="compliance",
+                transcript=transcript,
+                call=lambda: self.compliance.analyze(transcript),
+            ),
+            run_logged_agent(
+                logger=logger,
+                agent_name="summarizer",
+                transcript=transcript,
+                call=lambda: self.summarizer.analyze(transcript),
+            ),
         )
         return AgentAnalysis(
             classification=classification,
@@ -61,10 +85,30 @@ class LLMSupervisor:
             (compliance, compliance_mode),
             (summary, summarizer_mode),
         ) = await asyncio.gather(
-            self.classifier.analyze_with_mode(transcript),
-            self.quality.analyze_with_mode(transcript),
-            self.compliance.analyze_with_mode(transcript),
-            self.summarizer.analyze_with_mode(transcript),
+            run_logged_agent(
+                logger=logger,
+                agent_name="classifier",
+                transcript=transcript,
+                call=lambda: self.classifier.analyze_with_mode(transcript),
+            ),
+            run_logged_agent(
+                logger=logger,
+                agent_name="quality",
+                transcript=transcript,
+                call=lambda: self.quality.analyze_with_mode(transcript),
+            ),
+            run_logged_agent(
+                logger=logger,
+                agent_name="compliance",
+                transcript=transcript,
+                call=lambda: self.compliance.analyze_with_mode(transcript),
+            ),
+            run_logged_agent(
+                logger=logger,
+                agent_name="summarizer",
+                transcript=transcript,
+                call=lambda: self.summarizer.analyze_with_mode(transcript),
+            ),
         )
         return AgentAnalysis(
             classification=classification,

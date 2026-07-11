@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
 import time
 from collections.abc import Callable, Sequence
 from pathlib import Path
@@ -61,7 +62,7 @@ def default_batch_pipeline_factory(model: WhisperModelLike) -> WhisperModelLike:
 class FasterWhisperTranscriber:
     """Транскрибирует аудио через faster-whisper и возвращает Pydantic-сегменты."""
 
-    _cpu_semaphore = asyncio.Semaphore(1)
+    _cpu_semaphore = threading.Semaphore(1)
 
     def __init__(
         self,
@@ -126,9 +127,12 @@ class FasterWhisperTranscriber:
 
     async def transcribe(self, audio_path: str | Path) -> list[TranscriptSegment]:
         if self.settings.whisper_device.lower() == "cpu":
-            async with self._cpu_semaphore:
-                return await asyncio.to_thread(self._transcribe_sync, Path(audio_path))
+            return await asyncio.to_thread(self._transcribe_sync_guarded, Path(audio_path))
         return await asyncio.to_thread(self._transcribe_sync, Path(audio_path))
+
+    def _transcribe_sync_guarded(self, audio_path: Path) -> list[TranscriptSegment]:
+        with self._cpu_semaphore:
+            return self._transcribe_sync(audio_path)
 
     def _transcribe_sync(self, audio_path: Path) -> list[TranscriptSegment]:
         try:

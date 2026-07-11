@@ -1,8 +1,7 @@
 .idea
 
-# Тестовые файлы и скрипты для генерации
+# Локальные тестовые аудио до переноса в test_data
 test_data_audio
-scripts
 
 # Huggingface модели
 CACHEDIR.TAG
@@ -22,6 +21,9 @@ ruvector.db
 docs/implementation-plan.md
 docs/prompt-keyword-audit.md
 docs/audio-storage-plan.md
+docs/current-status.md
+docs/deploy-digitalocean.md
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
